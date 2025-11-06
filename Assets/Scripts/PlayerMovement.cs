@@ -3,14 +3,23 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     [Header("Movement")]
-    public float moveSpeed;
-
+    public float walkSpeed = 2.5f;
+    private float moveSpeed;
     public float groundDrag;
+
+    [Header("Crouching")]
+    public float crouchHeight;
+    public float crouchSpeed;
+    public bool isCrouching;
+    private float standHeight;
 
     [Header("Ground Check")]
     public float playerHeight;
     public LayerMask whatIsGround;
     bool grounded;
+
+    [Header("Keybinding")]
+    public KeyCode crouchKey = KeyCode.LeftControl; 
 
     public Transform orientation;
 
@@ -25,12 +34,25 @@ public class PlayerMovement : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
+
+        standHeight = transform.localScale.y;
+        moveSpeed = walkSpeed;
     }
 
     public void Update()
     {
         grounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.2f, whatIsGround);
         MoveInput();
+        HandleCrouch();
+
+        if (isCrouching)
+        {
+            moveSpeed = crouchSpeed;
+        }
+        else
+        {
+            moveSpeed = walkSpeed;
+        }
 
         if (grounded)
         {
@@ -45,6 +67,7 @@ public class PlayerMovement : MonoBehaviour
     public void FixedUpdate()
     {
         MovePlayer();
+        SpeedControl();
     }
 
     private void MoveInput()
@@ -61,12 +84,28 @@ public class PlayerMovement : MonoBehaviour
 
     private void SpeedControl()
     {
-        Vector3 flatVel = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+        Vector3 flatVel = new(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
 
         if(flatVel.magnitude > moveSpeed)
         {
             Vector3 limitedVel = flatVel.normalized * moveSpeed;
             rb.linearVelocity = new Vector3(limitedVel.x, rb.linearVelocity.y, limitedVel.z);
+        }
+    }
+
+    private void HandleCrouch()
+    {
+        if (Input.GetKeyDown(crouchKey))
+        {
+            transform.localScale = new(transform.localScale.x, crouchHeight, transform.localScale.z);
+            rb.AddForce(Vector3.down * 5f, ForceMode.Impulse);
+            isCrouching = true;
+        }
+
+        if (Input.GetKeyUp(crouchKey))
+        {
+            transform.localScale = new(transform.localScale.x, standHeight, transform.localScale.z);
+            isCrouching = false;
         }
     }
 }
